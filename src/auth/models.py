@@ -7,12 +7,12 @@ from database import Base
 
 class Role(Base):
     __tablename__ = "role"
-    
+
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     permissions: Mapped[dict] = mapped_column(JSON)
 
-    
+
 class User(SQLAlchemyBaseUserTable[int], Base):
 
     __tablename__ = "user"
