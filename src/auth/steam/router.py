@@ -5,6 +5,7 @@ from config import settings
 import httpx
 import logging
 
+
 router = APIRouter(prefix="/api/auth")
 
 logging.basicConfig(level=logging.INFO)
