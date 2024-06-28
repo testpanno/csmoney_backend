@@ -2,6 +2,7 @@ from database import Base
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy import ForeignKey, Integer, String, Enum, Float, JSON, Boolean, DateTime, TIMESTAMP
 from skin.enums import ESkinExterior, ESkinPhase, ESkinRarity, ESkinType
+from trade.models import Trade
 
 class Skin(Base):
     __tablename__ = 'skin'
@@ -41,14 +42,13 @@ class Skin(Base):
     color: Mapped[str] = mapped_column(String)
 
     rarity: Mapped[str] = mapped_column(String)
-    collection: Mapped[str] = mapped_column(String)
     phase: Mapped[ESkinPhase] = mapped_column(Enum(ESkinPhase))
     pattern: Mapped[int] = mapped_column(Integer)
 
     # Values are enums for convenient filtering
     skin_type: Mapped[ESkinType] = mapped_column(Enum(ESkinType))
     exterior: Mapped[ESkinExterior] = mapped_column(Enum(ESkinExterior))
-    rarity: Mapped[ESkinRarity] = mapped_column(Enum(ESkinRarity))
+    rarity_enum: Mapped[ESkinRarity] = mapped_column(Enum(ESkinRarity))
 
     has_trade_lock: Mapped[bool] = mapped_column(Boolean)
     trade_lock: Mapped[TIMESTAMP] = mapped_column(DateTime)
@@ -59,6 +59,9 @@ class Skin(Base):
 
     user = relationship("User")
 
-    trades = relationship("Trade", back_populates="skins")
-    
+    trade_id: Mapped[int] = mapped_column(
+        ForeignKey("trade.id", ondelete="CASCADE")
+    )
+
+    trade = relationship("Trade", back_populates="skins")
     

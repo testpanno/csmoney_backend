@@ -11,7 +11,6 @@ class Trade(Base):
     __tablename__ = 'trade'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    
     datetime: Mapped[TIMESTAMP] = mapped_column(DateTime, default=datetime.utcnow)
     trade_type: Mapped[ETradeType] = mapped_column(Enum(ETradeType))
     status: Mapped[ETradeStatus] = mapped_column(Enum(ETradeStatus))
@@ -23,4 +22,4 @@ class Trade(Base):
 
     user = relationship("User")
 
-    skins: Mapped[list["Skin"]] = relationship("Skin", back_populates="trades")
+    skins = relationship("Skin", back_populates="trade")

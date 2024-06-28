@@ -5,7 +5,10 @@ from config import settings
 import httpx
 import logging
 
-router = APIRouter(prefix="/api/auth")
+router = APIRouter(
+    prefix="/api/auth",
+    tags=["steam_auth"]
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

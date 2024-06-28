@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from auth.base_config import auth_backend, fastapi_users
 from auth.schemas import UserCreate, UserRead
 from auth.steam.router import router as steam_router
+from skin.router import router as skin_router
 
 app = FastAPI(
     title="Trading app",
@@ -22,6 +23,7 @@ app.include_router(
 )
 
 app.include_router(steam_router)
+app.include_router(skin_router)
 
 
 if __name__ == "__main__":
