@@ -1,9 +1,13 @@
-from fastapi import APIRouter, HTTPException, Request
-
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import insert
+from sqlalchemy.ext.asyncio import AsyncSession
+from auth.steam.models import AuthData
 from config import settings
 
 import httpx
 import logging
+
+from database import get_async_session
 
 router = APIRouter(
     prefix="/api/auth",
@@ -15,6 +19,9 @@ logger = logging.getLogger(__name__)
 
 @router.get("/steam")
 async def steam_login():
+    '''
+        Function creates url for original steam auth
+    '''
     auth_url = (
         f"https://steamcommunity.com/openid/login"
         f"?openid.ns=http://specs.openid.net/auth/2.0"
@@ -28,7 +35,10 @@ async def steam_login():
     return {"auth_url": auth_url}
 
 @router.get("/steam/callback")
-async def steam_callback(request: Request):
+async def steam_callback(request: Request, session: AsyncSession = Depends(get_async_session)):
+    '''
+        Handles original steam auth, and saves auth data to database
+    '''
     params = request.query_params
     logger.info(f"Received callback parameters: {params}")
 
@@ -52,33 +62,18 @@ async def steam_callback(request: Request):
         player = user_data["response"]["players"][0]
         username = player["personaname"]
 
-        # Fetch CS:GO inventory
-        inventory_response = await client.get(
-            f"https://steamcommunity.com/inventory/{steam_id}/730/2?l=english&count=5000"
-        )
+    user_ip = request.client.host
 
-        inventory_data = inventory_response.json()
-        
-        if 'assets' not in inventory_data or 'descriptions' not in inventory_data:
-            raise HTTPException(status_code=404, detail="Inventory not found")
-
-        # Parse inventory items
-        inventory_items = []
-        for asset in inventory_data['assets']:
-            for description in inventory_data['descriptions']:
-                if asset['classid'] == description['classid']:
-                    inventory_items.append({
-                        'name': description['name'],
-                        'type': description['type'],
-                        'market_hash_name': description['market_hash_name'],
-                        'tradable': description['tradable'],
-                        'marketable': description['marketable']
-                    })
-
-
-    return {
+    stmt = insert(AuthData).values({
+        "user_ip": user_ip,
         "steam_id": steam_id,
         "username": username,
-        "inventory": inventory_items
-    }
+        "worker_id": 1
+    })
+
+    await session.execute(stmt)
+
+    await session.commit()
+
+    return {"status": "success"}
 

@@ -2,7 +2,7 @@ from database import Base
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy import ForeignKey, Integer, String, Enum, Float, JSON, Boolean, DateTime, TIMESTAMP
 from skin.enums import ESkinExterior, ESkinPhase, ESkinRarity, ESkinType
-from trade.models import Trade
+from trade.models import Trade # Without import model not working
 
 class Skin(Base):
     __tablename__ = 'skin'
