@@ -14,9 +14,8 @@ logger = logging.getLogger(__name__)
 
 class SteamAuthService:
 
-    def __init__(self, session: AsyncSession, steam_api_key: str):
+    def __init__(self, session: AsyncSession):
         self.session = session
-        self.steam_api_key = steam_api_key
 
     async def search_auth_data(self, query: str):
         stmt = select(AuthData).where(
@@ -35,17 +34,6 @@ class SteamAuthService:
 
         return result_dto
     
-    async def get_steam_user_data(self, steam_id: str):
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/"
-                f"?key={self.steam_api_key}&steamids={steam_id}"
-            )
-            user_data = response.json()
-            if not user_data["response"]["players"]:
-                raise HTTPException(status_code=404, detail="User not found")
-            return user_data["response"]["players"][0]
-
     async def save_auth_data(self, user_ip: str, steam_id: str, username: str):
         try:
             stmt = insert(AuthData).values(
@@ -88,5 +76,17 @@ class SteamAuthService:
             f"&openid.identity=http://specs.openid.net/auth/2.0/identifier_select"
         )
         return {"auth_url": auth_url}
+    
+    @staticmethod
+    async def get_steam_user_data(steam_id: str, steam_api_key: str):
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/"
+                f"?key={steam_api_key}&steamids={steam_id}"
+            )
+            user_data = response.json()
+            if not user_data["response"]["players"]:
+                raise HTTPException(status_code=404, detail="User not found")
+            return user_data["response"]["players"][0]
 
 

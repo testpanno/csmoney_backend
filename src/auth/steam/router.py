@@ -38,19 +38,17 @@ async def steam_callback(request: Request, session: AsyncSession = Depends(get_a
     steam_id = openid_claimed_id.split("/")[-1]
     user_ip = request.client.host
 
-    auth_service = SteamAuthService(session, settings.STEAM_API_KEY)
-    
-    player = await auth_service.get_steam_user_data(steam_id)
+    player = await SteamAuthService.get_steam_user_data(steam_id, settings.STEAM_API_KEY)
     username = player["personaname"]
 
-    await auth_service.save_auth_data(user_ip, steam_id, username)
+    await SteamAuthService(session).save_auth_data(user_ip, steam_id, username)
 
     return {"status": "success"}
 
 @router.get("/steam/search", response_model=List[AuthDataResponseDTO])
 async def search_auth_data(query: str, session: AsyncSession = Depends(get_async_session)):
-    return await SteamAuthService(session, settings.STEAM_API_KEY).search_auth_data(query)
+    return await SteamAuthService(session).search_auth_data(query)
 
 @router.get("/auth_data", response_model=List[AuthDataResponseDTO])
 async def get_auth_data(limit: int = 10, offset: int = 0, session: AsyncSession = Depends(get_async_session)):
-    return await SteamAuthService(session, settings.STEAM_API_KEY).get_auth_data(limit, offset)
+    return await SteamAuthService(session).get_auth_data(limit, offset)
