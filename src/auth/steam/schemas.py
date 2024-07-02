@@ -8,7 +8,7 @@ class AuthDataResponseDTO(BaseModel):
     created_at: datetime
     steam_id: str
     username: str
-    domain: str
+    domain_id: int
 
     class Config:
         from_attributes = True

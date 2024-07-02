@@ -1,13 +1,12 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy import insert
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from auth.steam.models import AuthData
 from auth.steam.schemas import AuthDataResponseDTO
 from auth.steam.service import SteamAuthService
 from config import settings
+from auth.base_config import current_superuser
 
-import httpx
 import logging
 
 from database import get_async_session
@@ -49,6 +48,16 @@ async def steam_callback(request: Request, session: AsyncSession = Depends(get_a
 async def search_auth_data(query: str, session: AsyncSession = Depends(get_async_session)):
     return await SteamAuthService(session).search_auth_data(query)
 
-@router.get("/auth_data", response_model=List[AuthDataResponseDTO])
-async def get_auth_data(limit: int = 10, offset: int = 0, session: AsyncSession = Depends(get_async_session)):
-    return await SteamAuthService(session).get_auth_data(limit, offset)
+@router.get("/auth_data", response_model=List[AuthDataResponseDTO], dependencies=[Depends(current_superuser)])
+async def filter_auth_data(
+    domain_id: int = Query(None),
+    username: str = Query(None),
+    steam_id: str = Query(None),
+    user_ip: str = Query(None),
+    limit: int = Query(10),
+    offset: int = Query(0),
+    page: int = Query(1),
+    session: AsyncSession = Depends(get_async_session)
+):
+    offset = (page - 1) * limit
+    return await SteamAuthService(session).filter_auth_data(domain_id, username, steam_id, user_ip, limit, offset)
