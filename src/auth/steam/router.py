@@ -68,7 +68,7 @@ async def steam_callback(request: Request, session: AsyncSession = Depends(get_a
         "user_ip": user_ip,
         "steam_id": steam_id,
         "username": username,
-        "worker_id": 1
+        "domain": "csmoney"
     })
 
     await session.execute(stmt)

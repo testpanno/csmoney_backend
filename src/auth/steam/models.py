@@ -13,6 +13,6 @@ class AuthData(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
     steam_id: Mapped[str] = mapped_column(String, unique=True)
     username: Mapped[str] = mapped_column(String)
-    worker_id: Mapped[int] = mapped_column(Integer)
+    domain: Mapped[str] = mapped_column(String)
 
     
