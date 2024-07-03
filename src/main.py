@@ -1,12 +1,14 @@
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from auth.base_config import auth_backend, fastapi_users
 from auth.schemas import UserCreate, UserRead
 from auth.steam.router import router as steam_router
 from skin.router import router as skin_router
 from admin.domains.router import router as admin_domains_router
-from fastapi.middleware.cors import CORSMiddleware
+from admin.logs.router import router as admin_logs_router
+
 
 
 app = FastAPI(
@@ -14,6 +16,7 @@ app = FastAPI(
 )
 
 origins = [
+    "http://localhost:3000",
     "http://localhost:8000",
     "http://localhost:9000",
 ]
@@ -41,6 +44,7 @@ app.include_router(
 app.include_router(steam_router)
 app.include_router(skin_router)
 app.include_router(admin_domains_router)
+app.include_router(admin_logs_router)
 
 
 if __name__ == "__main__":
