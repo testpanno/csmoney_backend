@@ -1,8 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from auth.steam.models import AuthData
-from auth.steam.schemas import AuthDataResponseDTO
+from auth.steam.schemas import AuthDataResponseDTO, AuthDataCreateDTO
 from auth.steam.service import SteamAuthService
 from config import settings
 from auth.base_config import current_superuser
@@ -40,7 +39,9 @@ async def steam_callback(request: Request, session: AsyncSession = Depends(get_a
     player = await SteamAuthService.get_steam_user_data(steam_id, settings.STEAM_API_KEY)
     username = player["personaname"]
 
-    await SteamAuthService(session).save_auth_data(user_ip, steam_id, username)
+    auth_data = AuthDataCreateDTO(user_ip=user_ip, steam_id=steam_id, username=username, domain_id=1)
+
+    await SteamAuthService(session).save_auth_data(auth_data)
 
     return {"status": "success"}
 
@@ -61,3 +62,15 @@ async def filter_auth_data(
 ):
     offset = (page - 1) * limit
     return await SteamAuthService(session).filter_auth_data(domain_id, username, steam_id, user_ip, limit, offset)
+
+@router.post("/auth_data")
+async def create_auth_data(auth_data: AuthDataCreateDTO, session: AsyncSession = Depends(get_async_session)):
+    '''
+        Allows other sites to send info about registrations via Steam.
+    '''
+    try:
+        await SteamAuthService(session).save_auth_data(auth_data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return {"status": "success"}

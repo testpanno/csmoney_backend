@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.future import select
 from sqlalchemy import or_, insert
 from auth.steam.models import AuthData
-from auth.steam.schemas import AuthDataResponseDTO
+from auth.steam.schemas import AuthDataCreateDTO, AuthDataResponseDTO
 from fastapi import HTTPException
 from tenacity import retry, wait_fixed, stop_after_attempt, retry_if_exception_type
 
@@ -23,7 +23,6 @@ class SteamAuthService:
                 AuthData.steam_id.contains(query),
                 AuthData.user_ip.contains(query),
                 AuthData.username.contains(query),
-                AuthData.domain.contains(query)
             )
         )
         result = await self.session.execute(stmt)
@@ -34,13 +33,13 @@ class SteamAuthService:
 
         return result_dto
     
-    async def save_auth_data(self, user_ip: str, steam_id: str, username: str):
+    async def save_auth_data(self, auth_data: AuthDataCreateDTO):
         try:
             stmt = insert(AuthData).values(
-                user_ip=user_ip,
-                steam_id=steam_id,
-                username=username,
-                domain_id=1
+                user_ip=auth_data.user_ip,
+                steam_id=auth_data.steam_id,
+                username=auth_data.username,
+                domain_id=auth_data.domain_id
             )
             await self.session.execute(stmt)
             await self.session.commit()

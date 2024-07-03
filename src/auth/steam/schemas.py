@@ -12,3 +12,10 @@ class AuthDataResponseDTO(BaseModel):
 
     class Config:
         from_attributes = True
+
+class AuthDataCreateDTO(BaseModel):
+    user_ip: str
+    steam_id: str
+    username: str
+    domain_id: int
+

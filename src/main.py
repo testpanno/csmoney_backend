@@ -6,9 +6,24 @@ from auth.schemas import UserCreate, UserRead
 from auth.steam.router import router as steam_router
 from skin.router import router as skin_router
 from admin.domains.router import router as admin_domains_router
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI(
     title="Trading app",
+)
+
+origins = [
+    "http://localhost:8000",
+    "http://localhost:9000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(
