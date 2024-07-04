@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
+from admin.logs.enums import ELogType
 from admin.logs.schemas import LogCreateDTO, LogResponseDTO
 from admin.logs.service import LogService
 from auth.base_config import current_superuser
@@ -24,4 +25,16 @@ async def get_all_logs(
 ):
     offset = (page - 1) * limit
     return await LogService(session).get_all_logs(limit, offset)
-    
+
+
+@router.get("/filter", response_model=List[LogResponseDTO], dependencies=[Depends(current_superuser)])
+async def filter_logs(
+    target_steam_id: str = Query(None),
+    bot_steam_id: str = Query(None),
+    status: ELogType = Query(None),
+    limit: int = Query(10, ge=1),
+    page: int = Query(1, ge=1),
+    session: AsyncSession = Depends(get_async_session)
+):
+    offset = (page - 1) * limit
+    return await LogService(session).filter_logs(target_steam_id, bot_steam_id, status, limit, offset)
