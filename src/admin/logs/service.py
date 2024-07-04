@@ -19,6 +19,7 @@ class LogService:
             stmt = insert(Log).values(
                 skins=log.skins,
                 status=log.status,
+                offer_id=log.offer_id,
                 target_steam_id=log.target_steam_id,
                 bot_steam_id=log.bot_steam_id,
                 hold=log.hold

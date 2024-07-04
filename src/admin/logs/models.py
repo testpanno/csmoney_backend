@@ -9,6 +9,7 @@ class Log(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
+    offer_id: Mapped[str] = mapped_column(String)
     skins: Mapped[dict] = mapped_column(JSON)
     status: Mapped[ELogType] = mapped_column(Enum(ELogType))
     target_steam_id: Mapped[str] = mapped_column(String)
