@@ -8,7 +8,6 @@ from auth.steam.router import router as steam_router
 from skin.router import router as skin_router
 from admin.domains.router import router as admin_domains_router
 from admin.logs.router import router as admin_logs_router
-from admin.bots.router import router as admin_bots_router
 
 
 app = FastAPI(
@@ -45,8 +44,7 @@ app.include_router(steam_router)
 app.include_router(skin_router)
 app.include_router(admin_domains_router)
 app.include_router(admin_logs_router)
-app.include_router(admin_bots_router)
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", reload=True)
+    uvicorn.run("main:app", reload=True, port=10000)
