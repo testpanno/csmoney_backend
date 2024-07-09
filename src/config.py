@@ -14,6 +14,9 @@ class Settings(BaseSettings):
 
     ADMIN_API_KEY: str
 
+    ETHERSCAN_API_KEY: str
+    BLOCKCYPHER_API_KEY: str
+
     @property
     def DATABASE_URL_asyncpg(self):
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
