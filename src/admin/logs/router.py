@@ -17,6 +17,7 @@ async def create_log(log: LogCreateDTO, session: AsyncSession = Depends(get_asyn
     log_id = await LogService(session).save_log(log)
     return {"id": log_id}
 
+
 @router.get("/", response_model=List[LogResponseDTO], dependencies=[Depends(current_superuser)])
 async def get_all_logs(
     limit: int = Query(10, ge=1),
