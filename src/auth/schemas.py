@@ -1,6 +1,13 @@
 from fastapi_users import schemas
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict
 
+
+class LoginResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+
+class TokenRefreshRequest(BaseModel):
+    refresh_token: str
 
 class UserRead(schemas.BaseUser[int]):
     id: int
