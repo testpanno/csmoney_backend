@@ -1,9 +1,13 @@
 from typing import Optional
 
-from fastapi import Depends, Request
+from fastapi import Depends, Request, HTTPException, status
 from fastapi_users import (BaseUserManager, IntegerIDMixin, exceptions, models,
                            schemas)
 
+from fastapi_users.exceptions import UserNotExists
+
+from fastapi.security import OAuth2PasswordRequestForm
+from fastapi_users.password import PasswordHelper
 from auth.models import User
 from auth.utils import get_user_db
 from config import settings
@@ -33,6 +37,7 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
             if safe
             else user_create.create_update_dict_superuser()
         )
+
         password = user_dict.pop("password")
         user_dict["hashed_password"] = self.password_helper.hash(password)
         user_dict["role_id"] = 1
@@ -46,3 +51,26 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
 
 async def get_user_manager(user_db=Depends(get_user_db)):
     yield UserManager(user_db)
+
+password_helper = PasswordHelper()
+
+async def authenticate_user(
+    form_data: OAuth2PasswordRequestForm,
+    user_manager: UserManager = Depends(get_user_manager)
+) -> User:
+
+    try:    
+        user = await user_manager.get_by_email(form_data.username)
+    except UserNotExists:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect email or password",
+        )
+
+    if not password_helper.verify_and_update(form_data.password, user.hashed_password)[0]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect email or password",
+        )
+
+    return user
