@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from auth.schemas import LoginRequest, LoginResponse, TokenRefreshRequest, TokenRequest
 from auth.service import AuthService
 
@@ -18,10 +18,11 @@ async def login(
 
 @router.post("/api/auth/refresh", tags=["auth"])
 async def refresh_jwt_token(
-    data: TokenRefreshRequest,
+    request: Request,
     auth_service: AuthService = Depends()
 ):
-    return await auth_service.refresh_jwt_token(data.refresh_token)
+    refresh_token = request.cookies.get("refreshToken")
+    return await auth_service.refresh_jwt_token(refresh_token)
 
 
 @router.get("/api/auth/profile", tags=["auth"])
@@ -38,3 +39,13 @@ async def get_profile(
     
     user = await auth_service.get_user(access_token)
     return user
+
+@router.post("/api/auth/logout", tags=["auth"])
+async def logout(response: Response):
+    response.delete_cookie("accessToken")
+    response.delete_cookie("refreshToken")
+
+    return {
+        "message": "Logged out successfully",
+        "currentCookie": response
+    }
