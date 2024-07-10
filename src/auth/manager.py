@@ -52,22 +52,24 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
 async def get_user_manager(user_db=Depends(get_user_db)):
     yield UserManager(user_db)
 
+
 password_helper = PasswordHelper()
 
 async def authenticate_user(
-    form_data: OAuth2PasswordRequestForm,
+    email: str,
+    password: str,
     user_manager: UserManager = Depends(get_user_manager)
 ) -> User:
 
     try:    
-        user = await user_manager.get_by_email(form_data.username)
+        user = await user_manager.get_by_email(email)
     except UserNotExists:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect email or password",
         )
 
-    if not password_helper.verify_and_update(form_data.password, user.hashed_password)[0]:
+    if not password_helper.verify_and_update(password, user.hashed_password)[0]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect email or password",

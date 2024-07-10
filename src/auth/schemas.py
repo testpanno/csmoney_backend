@@ -1,10 +1,16 @@
 from fastapi_users import schemas
 from pydantic import BaseModel, ConfigDict
 
+class TokenRequest(BaseModel):
+    accessToken: str
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
 
 class LoginResponse(BaseModel):
-    access_token: str
-    refresh_token: str
+    accessToken: str
+    refreshToken: str
 
 class TokenRefreshRequest(BaseModel):
     refresh_token: str
