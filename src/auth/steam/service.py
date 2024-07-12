@@ -4,11 +4,12 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.future import select
-from sqlalchemy import or_, insert
+from sqlalchemy import asc, desc, or_, insert
 from auth.steam.models import AuthData
 from auth.steam.schemas import AuthDataCreateDTO, AuthDataResponseDTO
 from fastapi import HTTPException
 from tenacity import retry, wait_fixed, stop_after_attempt, retry_if_exception_type
+from admin.domains.service import DomainService
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,8 @@ class SteamAuthService:
         except SQLAlchemyError as e:
             logger.error(f"Database error: {e}")
             raise HTTPException(status_code=500, detail="Internal Server Error")
-        
+    
+    # Тут связь с сервисом доменов чтобы получить имя по айди домена
     async def filter_auth_data(self, domain_id: int = None, username: str = None, steam_id: str = None, user_ip: str = None, limit: int = 10, offset: int = 0):
         try:
             query = select(AuthData)
@@ -59,16 +61,37 @@ class SteamAuthService:
             if user_ip:
                 query = query.where(AuthData.user_ip == user_ip)
             
-            query = query.limit(limit).offset(offset)
+            query = query.order_by(desc(getattr(AuthData, "id"))).limit(limit).offset(offset)
 
             result = await self.session.execute(query)
 
             result_orm = result.scalars().all()
 
-            result_dto = [AuthDataResponseDTO.model_validate(row, from_attributes=True) for row in result_orm]
+            # Get the unique domain IDs from the results
+            domain_ids = {row.domain_id for row in result_orm}
+            domain_map = {}
+            
+            # Fetch domain names for the unique domain IDs
+            for domain_id in domain_ids:
+                domain = await DomainService(self.session).get_domain(domain_id)
+                if domain:
+                    domain_map[domain_id] = domain.domain_name
+
+            # Build the response DTOs
+            result_dto = [
+                AuthDataResponseDTO(
+                    id=row.id,
+                    user_ip=row.user_ip,
+                    created_at=row.created_at,
+                    steam_id=row.steam_id,
+                    username=row.username,
+                    domain_id=row.domain_id,
+                    domain_name=domain_map.get(row.domain_id, "Unknown")
+                )
+                for row in result_orm
+            ]
 
             return result_dto
-        
         except SQLAlchemyError as e:
             logger.error(f"Database error: {e}")
             raise HTTPException(status_code=500, detail="Internal Server Error")

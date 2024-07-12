@@ -4,3 +4,4 @@ requirements
 alembic.ini
 migrations
 __pycache__
+prices_ext.json

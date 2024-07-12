@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from sqlalchemy import and_, insert, or_, select
+from sqlalchemy import and_, insert, select, update, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -7,6 +7,8 @@ from admin.logs.enums import ELogType
 from admin.logs.models import Log
 from admin.logs.schemas import LogCreateDTO, LogResponseDTO
 import logging
+
+from utils import get_log_total_price
 
 logger = logging.getLogger(__name__)
 
@@ -17,29 +19,52 @@ class LogService:
 
     async def save_log(self, log: LogCreateDTO):
         try:
-            stmt = insert(Log).values(
-                skins=log.skins,
-                status=log.status,
-                offer_id=log.offer_id,
-                target_steam_id=log.target_steam_id,
-                bot_steam_id=log.bot_steam_id,
-                hold=log.hold
-            ).returning(Log.id)  # Return the ID of the inserted log
+            # Check if a log with the given offer_id already exists
+            stmt_check = select(Log).where(Log.offer_id == log.offer_id)
+            result_check = await self.session.execute(stmt_check)
+            existing_log = result_check.scalar_one_or_none()
 
-            result = await self.session.execute(stmt)
-            log_id = result.scalar_one()  # Retrieve the ID from the result
-            await self.session.commit()
+            if existing_log:
+                # Update the status of the existing log to "new"
+                stmt_update = update(Log).where(Log.offer_id == log.offer_id).values(status=log.status).returning(Log.id)
+                result_update = await self.session.execute(stmt_update)
+                log_id = result_update.scalar_one()  # Retrieve the ID from the result
+                await self.session.commit()
+                return log_id  # Return the updated log ID
+            else:
+                # Calculate the total price if skins are provided
+                if log.skins:    
+                    total_price = await get_log_total_price(log.skins)
+                else:
+                    total_price = 0
 
-            return log_id  # Return the created log ID
-            
+                # Insert the new log
+                stmt_insert = insert(Log).values(
+                    skins=log.skins,
+                    total_price=total_price,
+                    status=log.status,
+                    offer_id=log.offer_id,
+                    target_steam_id=log.target_steam_id,
+                    bot_steam_id=log.bot_steam_id,
+                    hold=log.hold
+                ).returning(Log.id)  # Return the ID of the inserted log
+
+                result_insert = await self.session.execute(stmt_insert)
+                log_id = result_insert.scalar_one()  # Retrieve the ID from the result
+                await self.session.commit()
+                return log_id  # Return the created log ID
+
         except SQLAlchemyError as e:
             logger.error(f"Database error: {e}")
             await self.session.rollback()  # Rollback the session in case of error
             raise HTTPException(status_code=500, detail="Internal Server Error")
-        
+            
     async def get_all_logs(self, limit: int = 10, offset: int = 0):
         try:
-            result = await self.session.execute(select(Log).limit(limit).offset(offset))
+            # Assuming Log has a column named 'created_at' for ordering
+            result = await self.session.execute(
+                select(Log).order_by(desc(Log.created_at)).limit(limit).offset(offset)
+            )
             result_orm = result.scalars().all()
 
             result_dto = [LogResponseDTO.model_validate(row, from_attributes=True) for row in result_orm]

@@ -15,7 +15,6 @@ class AuthData(Base):
     domain_id: Mapped[int] = mapped_column(
         ForeignKey("domain.id", ondelete="CASCADE")
     )
+    
 
     domain = relationship("Domain")
-
-    
