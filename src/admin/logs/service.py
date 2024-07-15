@@ -61,7 +61,6 @@ class LogService:
             
     async def get_all_logs(self, limit: int = 10, offset: int = 0):
         try:
-            # Assuming Log has a column named 'created_at' for ordering
             result = await self.session.execute(
                 select(Log).order_by(desc(Log.created_at)).limit(limit).offset(offset)
             )

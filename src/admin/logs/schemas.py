@@ -17,6 +17,7 @@ class LogResponseDTO(BaseModel):
     created_at: datetime
     skins: dict
     status: ELogType
+    total_price: str
     offer_id: str
     target_steam_id: str
     bot_steam_id: str
