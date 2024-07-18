@@ -34,4 +34,4 @@ async def get_log_total_price(log):
                     total_log_value += latest_price
                 break
 
-    return total_log_value
+    return str(round(total_log_value, 2))

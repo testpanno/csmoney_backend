@@ -105,4 +105,11 @@ class LogService:
         except SQLAlchemyError as e:
             logger.error(f"Database error: {e}")
             raise HTTPException(status_code=500, detail="Internal Server Error")
+        
+    async def get_last_5_accepted_logs(self):
+        try:
+            return await self.filter_logs(status=ELogType.accepted, limit=5)
+        except SQLAlchemyError as e:
+            logger.error(f"Database error: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
 
