@@ -96,3 +96,13 @@ class LogService:
             logger.error(f"Database error: {e}")
             raise HTTPException(status_code=500, detail="Internal Server Error")
 
+    
+    async def calculate_total_price_of_accepted_logs(self):
+        try:
+            accepted_logs = await self.filter_logs(status=ELogType.accepted, limit=10000)
+            total_price = sum(log.total_price for log in accepted_logs)
+            return total_price
+        except SQLAlchemyError as e:
+            logger.error(f"Database error: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+

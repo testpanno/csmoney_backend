@@ -4,7 +4,7 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.future import select
-from sqlalchemy import asc, desc, or_, insert
+from sqlalchemy import desc, distinct, func, or_, insert
 from auth.steam.models import AuthData
 from auth.steam.schemas import AuthDataCreateDTO, AuthDataResponseDTO
 from fastapi import HTTPException
@@ -33,6 +33,16 @@ class SteamAuthService:
         result_dto = [AuthDataResponseDTO.model_validate(row, from_attributes=True) for row in result_orm]
 
         return result_dto
+    
+    async def get_unique_steam_id_count(self):
+        try:
+            stmt = select(func.count(distinct(AuthData.steam_id)))
+            result = await self.session.execute(stmt)
+            unique_steam_id_count = result.scalar_one()
+            return unique_steam_id_count
+        except SQLAlchemyError as e:
+            logger.error(f"Database error: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
     
     async def save_auth_data(self, auth_data: AuthDataCreateDTO):
         try:
