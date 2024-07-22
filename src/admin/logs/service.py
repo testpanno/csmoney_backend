@@ -1,5 +1,6 @@
 from fastapi import HTTPException
-from sqlalchemy import and_, insert, select, update, desc
+from datetime import datetime, timedelta
+from sqlalchemy import DECIMAL, and_, cast, insert, select, update, desc, extract, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -96,13 +97,93 @@ class LogService:
             logger.error(f"Database error: {e}")
             raise HTTPException(status_code=500, detail="Internal Server Error")
 
-    
     async def calculate_total_price_of_accepted_logs(self):
         try:
-            accepted_logs = await self.filter_logs(status=ELogType.accepted, limit=10000)
-            total_price = sum(log.total_price for log in accepted_logs)
+            accepted_logs = await self.filter_logs(status=ELogType.ACCEPTED, limit=10000)
+            total_price = sum(float(log.total_price) for log in accepted_logs)
             return total_price
         except SQLAlchemyError as e:
             logger.error(f"Database error: {e}")
             raise HTTPException(status_code=500, detail="Internal Server Error")
-        
+
+    async def get_logs_last_6_months(self):
+        try:
+            # Calculate the first day of the current month and six months ago
+            today = datetime.utcnow().replace(day=1)
+            six_months_ago = (today - timedelta(days=1)).replace(day=1) - timedelta(days=150)
+
+            # Generate the expected months in the format YYYY-MM
+            months = [(today.year, today.month)]
+            for _ in range(5):
+                last_month = months[-1][1] - 1 or 12
+                last_year = months[-1][0] - (1 if last_month == 12 else 0)
+                months.append((last_year, last_month))
+
+            months.reverse()  # Order from oldest to newest
+
+            # Query for logs in the last six months
+            stmt = (
+                select(
+                    extract('month', Log.created_at).label('month'),
+                    extract('year', Log.created_at).label('year'),
+                    func.sum(cast(Log.total_price, DECIMAL)).label('total_price')
+                )
+                .where(
+                    and_(
+                        Log.created_at >= six_months_ago,
+                        Log.status == 'ACCEPTED'  # Adjust this line to match your status field
+                    ))
+                .group_by('year', 'month')
+                .order_by('year', 'month')
+            )
+            result = await self.session.execute(stmt)
+            stats = result.fetchall()
+
+            # Create a dictionary with the query results
+            stats_dict = {f"{int(row.year)}-{int(row.month):02d}": float(row.total_price) for row in stats}
+
+            # Create the final result by merging with the expected months
+            final_stats = []
+            for year, month in months:
+                month_str = f"{year}-{month:02d}"
+                total_price = stats_dict.get(month_str, 0)
+                final_stats.append({"month": month_str, "total_price": total_price})
+
+            return final_stats
+
+        except SQLAlchemyError as e:
+            logger.error(f"Database error: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+
+    async def get_logs_last_month(self):
+        try:
+            # Calculate the first day of the current month
+            first_day_of_current_month = datetime.utcnow().replace(day=1)
+
+            # Convert total_price to numeric before summing
+            stmt = (
+                select(
+                    func.sum(cast(Log.total_price, DECIMAL)).label('total_price')
+                )
+                .where(
+                    and_(
+                        Log.status == 'ACCEPTED',
+                        Log.created_at >= first_day_of_current_month
+                    )
+                )
+            )
+            logger.debug(f"Executing query: {stmt}")
+            result = await self.session.execute(stmt)
+            total_price = result.scalar()
+            return total_price
+        except SQLAlchemyError as e:
+            logger.error(f"Database error: {e}")
+            await self.session.rollback()  # Rollback in case of error
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+

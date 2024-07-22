@@ -82,3 +82,9 @@ async def create_auth_data(auth_data: AuthDataCreateDTO, session: AsyncSession =
     await SteamAuthService(session).save_auth_data(auth_data)
 
     return {"status": "success"}
+
+@debug_mode
+@router.get("/unique-steam-ids", dependencies=[Depends(current_superuser)])
+async def get_unique_steam_ids_count(session: AsyncSession = Depends(get_async_session)):
+    return await SteamAuthService(session).get_unique_steam_id_count()
+    
